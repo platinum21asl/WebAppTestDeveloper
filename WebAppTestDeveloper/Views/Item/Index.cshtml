@@ -1,0 +1,146 @@
+﻿@using TD_BAL.Models
+@model PagedSalesOrderViewModel
+@{
+    ViewData["Title"] = "Home Page";
+    ViewData["SubTitle"] = "Sales Order";
+}
+
+
+<!-- Search Form -->
+<div class="card bg-light mb-4" style="background-color: #b3d1f7;">
+    <div class="card-body" style="background-color: #b3d1f7;">
+        <div class="row g-3">
+            <div class="col-md-5">
+                <label for="keywords" class="form-label">Keywords</label>
+                <input type="text" class="form-control" id="keywords" placeholder="Insert Text">
+            </div>
+            <div class="col-md-5">
+                <label for="orderDate" class="form-label">Order Date</label>
+                <input type="date" class="form-control" id="orderDate">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-primary w-100" id="searchButton">Search</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="mb-3 d-flex justify-content-between">
+    <div>
+        <a class="btn btn-danger me-2" asp-controller="Item" asp-action="Create">Add New Data</a>
+        <a class="btn btn-success"
+           href="@Url.Action("ExportToCsv", "Item", new { page = Model.CurrentPage, orderDate = ViewBag.OrderDate, keyword = ViewBag.Keyword })">
+            Export To CSV
+        </a>
+    </div>
+    <button class="btn btn-warning">Hint</button>
+</div>
+
+<!-- Data Table -->
+<div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead class="header-background text-white">
+            <tr>
+                <th>No</th>
+                <th>Action</th>
+                <th>Sales Order</th>
+                <th>Order Date</th>
+                <th>Customer</th>
+            </tr>
+        </thead>
+        <tbody style="background-color: white;">
+            @if (Model.SalesOrders != null && Model.SalesOrders.Any())
+            {
+                int no = (Model.CurrentPage - 1) * 5 + 1;
+                foreach (var item in Model.SalesOrders)
+                {
+                    <tr>
+                        <td>@no</td>
+                        <td>
+                            <a href="@Url.Action("Update", "Item", new { id = item.Id })" class="text-primary me-2"><i class="bi bi-pencil-square"></i></a>
+                            <a href="@Url.Action("Delete", "Item", new { id = item.Id })" class="text-danger"
+                               onclick="return confirm('Are you sure you want to delete this order?');"><i class="bi bi-trash"></i></a>
+                        </td>
+                        <td>@item.SalesOrder</td>
+                        <td>@item.OrderDate</td>
+                        <td>@item.NameCustomer</td>
+                    </tr>
+                    no++;
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5" class="text-center">No data available</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        @if (Model.CurrentPage > 1)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("Index", new { page = Model.CurrentPage - 1 })" aria-label="Previous">&laquo;</a>
+            </li>
+        }
+        else
+        {
+            <li class="page-item disabled">
+                <a class="page-link" tabindex="-1" aria-disabled="true">&laquo;</a>
+            </li>
+        }
+
+        @for (int i = 1; i <= Model.TotalPages; i++)
+        {
+            <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                <a class="page-link" href="@Url.Action("Index", new { page = i })">@i</a>
+            </li>
+        }
+
+        @if (Model.CurrentPage < Model.TotalPages)
+        {
+            <li class="page-item">
+                <a class="page-link" href="@Url.Action("Index", new { page = Model.CurrentPage + 1 })" aria-label="Next">&raquo;</a>
+            </li>
+        }
+        else
+        {
+            <li class="page-item disabled">
+                <a class="page-link" tabindex="-1" aria-disabled="true">&raquo;</a>
+            </li>
+        }
+    </ul>
+</nav>
+
+@section Scripts {
+    <script>
+        // function exportToExcel() {
+        //     const orderDate = document.getElementById('orderDate')?.value || '';
+        //     const keyword = document.getElementById('keywords')?.value || '';
+
+        //     const url = `/Item/ExportToExcel?orderDate=${encodeURIComponent(orderDate)}&keyword=${encodeURIComponent(keyword)}`;
+        //     window.location.href = url; // Redirect untuk memulai download
+        // }
+
+
+        document.getElementById('searchButton').addEventListener('click', function () {
+     
+            const keywords = document.getElementById('keywords').value;
+            const orderDate = document.getElementById('orderDate').value;
+
+       
+            const query = new URLSearchParams();
+            if (keywords) query.append('keyword', keywords);
+            if (orderDate) query.append('orderDate', orderDate);
+
+   
+            window.location.href = `/Item/Index?${query.toString()}`;
+        });
+    </script>
+
+}

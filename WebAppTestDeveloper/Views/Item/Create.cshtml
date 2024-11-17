@@ -1,0 +1,246 @@
+﻿@{
+    ViewData["Title"] = "Web App Test Developer";
+    ViewData["SubTitle"] = "ADD NEW - SALES ORDER";
+}
+
+<form id="orderForm" method="post">
+    <!-- Sales Order Information -->
+    <div class="card mb-4">
+        <div style="background-color: #1a3e5f;" class="card-header text-white">
+            Sales Order Information
+        </div>
+        <div class="card-body bg-light">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="orderNumber" class="form-label">Sales Order Number</label>
+                    <input type="text" class="form-control" id="orderNumber" name="OrderNumber" placeholder="Input Here">
+                </div>
+                <div class="col-md-4">
+                    <label for="orderDate" class="form-label">Order Date</label>
+                    <input type="date" class="form-control" id="orderDate" name="OrderDate">
+                </div>
+                <div class="col-md-4">
+                    <label for="customer" class="form-label">Customer</label>
+                    <select id="customer" class="form-select" name="CustomerId">
+                        <option selected>Select One</option>
+                        @foreach (var customer in ViewBag.Customers)
+                        {
+                            <option value="@customer.Id">@customer.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <label for="address" class="form-label">Address</label>
+                    <textarea class="form-control" id="address" name="Address" placeholder="Input Here"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Item Information -->
+    <div class="card mb-4">
+        <div style="background-color: #1a3e5f;" class="card-header text-white d-flex justify-content-between align-items-center">
+            <span>Detail Item Information</span>
+            <button class="btn btn-warning btn-sm"><i class="bi bi-info-circle"></i> Hint</button>
+        </div>
+        <div class="card-body bg-light">
+            <!-- Add Item Button -->
+            <button type="button" id="btnAddItem" class="btn btn-danger mb-3">Add Item</button>
+
+            <!-- Items Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="itemsTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>No</th>
+                            <th>Action</th>
+                            <th>Item Name</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                   
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Total Item:</td>
+                            <td id="totalQty">0</td>
+                            <td class="text-end fw-bold">Total Amount:</td>
+                            <td id="totalAmount">0.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="d-flex justify-content-end gap-2">
+        <button type="submit" class="btn btn-primary">Save Data Order</button>
+        <a class="btn btn-secondary" asp-controller="Item" asp-action="Index">
+            <i class="bi bi-x-circle"></i> Close
+        </a>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        let itemsData = [];
+        let itemId = 1;
+
+        // Function to update the table
+        function updateTable() {
+            const tbody = document.querySelector('#itemsTable tbody');
+            tbody.innerHTML = '';  // Clear existing rows
+
+            let totalQty = 0;
+            let totalAmount = 0;
+
+            itemsData.forEach((item, index) => {
+                const row = document.createElement('tr');
+              row.innerHTML = `
+                <td>${index + 1}</td>  <!-- Gunakan index untuk urutan -->
+                <td>
+                    <a href="#" class="text-success save-item" style="display: ${item.isNew ? 'inline' : 'none'}"><i class="bi bi-save"></i></a>
+                    <a href="#" class="text-primary edit-item" style="display: ${!item.isNew ? 'inline' : 'none'}"><i class="bi bi-pencil-square"></i></a>
+                    <a href="#" class="text-danger delete-item" style="display: ${!item.isNew ? 'inline' : 'none'}"><i class="bi bi-trash"></i></a>
+                </td>
+                <td><input type="text" value="${item.name}" class="form-control item-name" ${item.isNew ? '' : 'disabled'} /></td>
+                <td><input type="number" value="${item.qty}" class="form-control item-qty" ${item.isNew ? '' : 'disabled'} /></td>
+                <td><input type="number" value="${item.price}" class="form-control item-price" ${item.isNew ? '' : 'disabled'} /></td>
+                <td><input type="number" value="${item.qty * item.price}" class="form-control item-total" disabled /></td>
+            `;
+
+                tbody.appendChild(row);
+
+                totalQty += item.qty;
+                totalAmount += item.qty * item.price;
+            });
+
+            document.getElementById('totalQty').innerText = totalQty;
+            document.getElementById('totalAmount').innerText = totalAmount.toFixed(2);
+        }
+
+        // Add Item functionality
+        document.getElementById('btnAddItem').addEventListener('click', () => {
+            // Add a new row with editable fields
+            itemsData.push({
+                name: '',
+                qty: 0,
+                price: 0,
+                isNew: true,  // Flag to indicate the row is new and can be edited
+            });
+
+            updateTable();
+        });
+
+        // Real-time Total Calculation
+        document.getElementById('itemsTable').addEventListener('input', (e) => {
+            if (e.target.classList.contains('item-qty') || e.target.classList.contains('item-price')) {
+                const row = e.target.closest('tr');
+                const index = row.rowIndex - 1;
+
+                // Update real-time total for each row
+                const qty = parseInt(row.querySelector('.item-qty').value);
+                const price = parseFloat(row.querySelector('.item-price').value);
+                row.querySelector('.item-total').value = (qty * price).toFixed(2);
+            }
+        });
+
+        // Save, Edit, Delete functionality
+        document.getElementById('itemsTable').addEventListener('click', (e) => {
+            if (e.target.closest('.save-item')) {
+                const row = e.target.closest('tr');
+                const index = row.rowIndex - 1;
+
+                // Save data from inputs
+                itemsData[index].name = row.querySelector('.item-name').value;
+                itemsData[index].qty = parseInt(row.querySelector('.item-qty').value);
+                itemsData[index].price = parseFloat(row.querySelector('.item-price').value);
+                itemsData[index].isNew = false;  // Mark as saved
+
+                row.querySelector('.save-item').style.display = 'none';
+                row.querySelector('.edit-item').style.display = 'inline';
+                row.querySelector('.delete-item').style.display = 'inline';
+
+                updateTable();
+            }
+
+            if (e.target.closest('.edit-item')) {
+                const row = e.target.closest('tr');
+                const index = row.rowIndex - 1;
+
+                row.querySelectorAll('input').forEach(input => input.disabled = false);
+
+                row.querySelector('.save-item').style.display = 'inline';
+                row.querySelector('.edit-item').style.display = 'none';
+                row.querySelector('.delete-item').style.display = 'none';
+            }
+
+            if (e.target.closest('.delete-item')) {
+                const row = e.target.closest('tr');
+                const index = row.rowIndex - 1;
+
+                itemsData.splice(index, 1);
+                updateTable();
+            }
+        });
+
+        // Submit form with items
+       document.getElementById('orderForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const orderData = {
+                orderNumber: document.getElementById('orderNumber').value,
+                orderDate: document.getElementById('orderDate').value,
+                customerId: document.getElementById('customer').value,
+                address: document.getElementById('address').value,
+            };
+
+            const items = itemsData.map(item => ({
+                name: item.name,
+                qty: item.qty,
+                price: item.price,
+            }));
+    
+            const data = {
+                reqOrderDto: orderData,
+                reqItemDtos: items
+            };
+
+            fetch('/Item/SaveOrderAndItems', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+              
+                console.log('Response Status:', response.status);  
+                if (!response.ok) {
+                    throw new Error('Failed to save data');
+                }
+
+             
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response Data:', data);  
+
+                if (data.success) {
+                    window.location.href = '/Item/Index'; 
+                } else {
+                    alert('Failed to save data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error); 
+                alert('An error occurred while saving the data');
+            });
+        });
+
+    </script>
+}

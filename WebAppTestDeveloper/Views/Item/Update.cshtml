@@ -1,0 +1,298 @@
+﻿@{
+    ViewData["Title"] = "Web App Test Developer";
+    ViewData["SubTitle"] = "EDIT ORDER- SALES ORDER";
+      string orderDateString = ViewBag.SalesOrder.OrderDate as string;
+    string formattedOrderDate = DateTime.TryParse(orderDateString, out var parsedDate)
+        ? parsedDate.ToString("yyyy-MM-dd")
+        : ""; 
+}
+<!-- Sales Order Information -->
+<div class="card mb-4">
+    <div style="background-color: #1a3e5f;" class="card-header text-white">
+        Sales Order Information
+    </div>
+    <div class="card-body bg-light">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="orderNumber" class="form-label">Sales Order Number</label>
+                <input type="text" class="form-control" id="orderNumber" placeholder="Input Here" value="@ViewBag.SalesOrder.SalesOrder">
+                <input type="hidden" class="form-control" id="salesOrderId" value="@ViewBag.SalesOrder.Id">
+            </div>
+            <div class="col-md-4">
+                <label for="orderDate" class="form-label">Order Date</label>
+                <input type="date" class="form-control" id="orderDate" value="@formattedOrderDate">
+            </div>
+            <div class="col-md-4">
+                <label for="customer" class="form-label">Customer</label>
+                <select id="customer" class="form-select" name="CustomerId">
+                    <option selected value="@ViewBag.SelectCustomerId" disabled>@ViewBag.SelectCustomer</option>
+                    @foreach (var customer in ViewBag.Customers)
+                    {
+                        <option value="@customer.Id">@customer.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-8">
+                <label for="address" class="form-label">Address</label>
+                <textarea class="form-control" id="address" placeholder="Input Here">@ViewBag.SalesOrder.Address</textarea>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!-- Detail Item Information -->
+<div class="card mb-4">
+    <div style="background-color: #1a3e5f;" class="card-header text-white d-flex justify-content-between align-items-center">
+        <span>Detail Item Information</span>
+        <button class="btn btn-warning btn-sm"><i class="bi bi-info-circle"></i> Hint</button>
+    </div>
+    <div class="card-body bg-light">
+        <!-- Add Item Button -->
+        <button id="addItemButton" class="btn btn-danger mb-3">Add Item</button>
+
+        <!-- Items Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="itemsTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th>No</th>
+                        <th>Action</th>
+                        <th>Item Name</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsTableBody">
+                    @if (ViewBag.ListItem != null)
+                    {
+                        int index = 1;
+                        foreach (var item in ViewBag.ListItem)
+                        {
+                            <tr data-index="@index">
+                                <td>@index</td>
+                                <td>
+                                    <a href="#" class="text-primary me-2 edit-item"><i class="bi bi-pencil-square"></i></a>
+                                    <a href="#" class="text-danger delete-item"><i class="bi bi-trash"></i></a>
+                                </td>
+                                <td><input type="text" class="form-control" value="@item.Name" disabled /></td>
+                                <td><input type="number" class="form-control" value="@item.Qty" disabled /></td>
+                                <td><input type="number" class="form-control" value="@item.Price" disabled /></td>
+                                <td><input type="number" class="form-control" value="@item.Qty * item.Price" readonly /></td>
+                            </tr>
+                            index++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center">No items found</td>
+                        </tr>
+                    }
+                </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Total Item:</td>
+                            <td id="totalQty">@ViewBag.TotalItem</td>
+                            <td class="text-end fw-bold">Total Amount:</td>
+                            <td id="totalAmount">@ViewBag.TotalAmount</td>
+                        </tr>
+                    </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- Action Buttons -->
+<div class="d-flex justify-content-end gap-2">
+    <button type="submit" class="btn btn-primary">Save Data Order</button>
+    <a class="btn btn-secondary" asp-controller="Item" asp-action="Index">
+        <i class="bi bi-x-circle"></i> Close
+    </a>
+</div>
+
+@section Scripts{
+    <script>
+        function updateRowTotal(row) {
+            var qty = parseFloat(row.querySelector('td:nth-child(4) input').value) || 0;
+            var price = parseFloat(row.querySelector('td:nth-child(5) input').value) || 0;
+            var totalCell = row.querySelector('td:nth-child(6) input');
+            totalCell.value = (qty * price).toFixed(2); // Update total
+        }
+
+        function updateTableTotals() {
+            var rows = document.querySelectorAll('#itemsTableBody tr');
+            var totalQty = 0;
+            var totalAmount = 0;
+
+            rows.forEach(row => {
+                var qty = parseFloat(row.querySelector('td:nth-child(4) input').value) || 0;
+                var total = parseFloat(row.querySelector('td:nth-child(6) input').value) || 0;
+
+                totalQty += qty;
+                totalAmount += total;
+            });
+
+            document.getElementById('totalQty').textContent = totalQty.toFixed(2);
+            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
+        }
+
+        function initializeTotals() {
+            var rows = document.querySelectorAll('#itemsTableBody tr');
+            rows.forEach(row => updateRowTotal(row)); 
+            updateTableTotals(); 
+        }
+
+        document.getElementById('itemsTableBody').addEventListener('input', function (event) {
+            var target = event.target;
+            if (target.closest('td:nth-child(4) input') || target.closest('td:nth-child(5) input')) {
+                var row = target.closest('tr');
+                updateRowTotal(row); 
+                updateTableTotals(); 
+            }
+        });
+
+        // Function to add a new item
+        document.getElementById('addItemButton').addEventListener('click', function () {
+            var tableBody = document.getElementById('itemsTableBody');
+            var rowCount = tableBody.rows.length;
+            var row = tableBody.insertRow(rowCount);
+            var index = rowCount + 1;
+
+            row.innerHTML = `
+                <td>${index}</td>
+                <td>
+                    <a href="#" class="text-primary me-2 edit-item"><i class="bi bi-pencil-square"></i></a>
+                    <a href="#" class="text-danger delete-item"><i class="bi bi-trash"></i></a>
+                </td>
+                <td><input type="text" class="form-control" placeholder="Item Name" disabled /></td>
+                <td><input type="number" class="form-control" placeholder="Qty" value="0" disabled /></td>
+                <td><input type="number" class="form-control" placeholder="Price" value="0.00" disabled /></td>
+                <td><input type="number" class="form-control" placeholder="Total" value="0.00" readonly /></td>
+            `;
+
+            updateTableTotals(); // Update table footer totals
+        });
+
+        // Edit item functionality
+        document.getElementById('itemsTableBody').addEventListener('click', function (event) {
+            if (event.target.closest('.edit-item')) {
+                var row = event.target.closest('tr');
+                var inputs = row.querySelectorAll('input');
+                inputs.forEach(input => input.disabled = false); // Enable inputs for editing
+                row.querySelector('.edit-item').style.display = 'none'; // Hide edit icon
+                row.querySelector('.delete-item').style.display = 'none'; // Hide delete icon
+                var saveIcon = document.createElement('a');
+                saveIcon.href = '#';
+                saveIcon.classList.add('text-success', 'me-2', 'save-item');
+                saveIcon.innerHTML = '<i class="bi bi-save"></i>';
+                row.querySelectorAll('td')[1].appendChild(saveIcon); // Add save icon
+            }
+        });
+
+        // Save item functionality
+        document.getElementById('itemsTableBody').addEventListener('click', function (event) {
+            if (event.target.closest('.save-item')) {
+                var row = event.target.closest('tr');
+                var inputs = row.querySelectorAll('input');
+                inputs.forEach(input => input.disabled = true); // Disable inputs after saving
+                row.querySelector('.save-item').remove(); // Remove save icon
+                row.querySelector('.edit-item').style.display = 'inline'; // Show edit icon again
+                row.querySelector('.delete-item').style.display = 'inline'; // Show delete icon again
+                updateRowTotal(row); // Update row total
+                updateTableTotals(); // Update footer totals
+            }
+        });
+
+        // Delete item functionality
+        document.getElementById('itemsTableBody').addEventListener('click', function (event) {
+            if (event.target.closest('.delete-item')) {
+                var row = event.target.closest('tr');
+                row.remove();
+                updateTableTotals(); // Update footer totals
+            }
+        });
+
+        // Initialize totals when the page loads
+        document.addEventListener('DOMContentLoaded', initializeTotals);
+    </script>
+
+    <script>
+        document.querySelector('.btn.btn-primary').addEventListener('click', function (event) {
+        event.preventDefault(); // Mencegah default form submission
+
+        // Ambil data dari form
+        const salesOrderId = document.getElementById('salesOrderId')?.value || null; // Pastikan hidden input untuk ID
+        const orderNumber = document.getElementById('orderNumber').value;
+        const orderDate = document.getElementById('orderDate').value;
+        const customerId = document.getElementById('customer').value;
+        const address = document.getElementById('address').value;
+
+        // Ambil detail item dari tabel
+        const items = [];
+        const rows = document.querySelectorAll('#itemsTableBody tr');
+        rows.forEach(row => {
+            const name = row.querySelector('td:nth-child(3) input').value;
+            const qty = row.querySelector('td:nth-child(4) input').value;
+            const price = row.querySelector('td:nth-child(5) input').value;
+
+            if (name && qty && price) {
+                items.push({ name, qty: parseInt(qty), price: parseFloat(price) });
+            }
+        });
+
+        // Validasi data
+        console.log("SATA", orderNumber, orderDate, customerId, address)
+        if (!orderNumber || !orderDate || !customerId || !address) {
+            alert('Harap lengkapi informasi Sales Order.');
+            return;
+        }
+        if (items.length === 0) {
+            alert('Detail item harus diisi.');
+            return;
+        }
+       
+        // Bangun payload untuk dikirim ke controller
+        const payload = {
+            ReqOrderDto: {
+                Id: salesOrderId, // ID untuk update
+                OrderNumber: orderNumber,
+                OrderDate: orderDate,
+                CustomerId: parseInt(customerId),
+                Address: address
+            },
+            ReqItemDtos: items
+        };
+
+        // Fetch ke controller
+        fetch(`/Item/SaveUpdateOrderAndItems?id=${salesOrderId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Gagal menyimpan data.');
+                }
+                return response.json();
+            })
+            .then(data => {
+            console.log('Response Data:', data);  // Memeriksa data yang diterima
+
+                // Jika response success, lakukan redirect
+                if (data.success) {
+                    window.location.href = '/Item/Index';  // Redirect setelah berhasil
+                } else {
+                    alert('Failed to save data');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat menyimpan data.');
+            });
+    });
+
+    </script>
+}
+
